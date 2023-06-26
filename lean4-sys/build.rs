@@ -12,9 +12,10 @@ fn main() {
         );
     }
 
-    let mut lean_dir = PathBuf::from(String::from_utf8(lean_output.stdout)
+    let lean_root = PathBuf::from(String::from_utf8(lean_output.stdout)
         .expect("Path returned by \"lean --print-prefix\" is invalid UTF-8; this is currently not supported")
         .trim());
+    let mut lean_dir = lean_root.clone();
     if cfg!(target_os = "windows") {
         lean_dir.push("bin")
     } else {
@@ -50,6 +51,7 @@ fn main() {
 
     let bindings = bindgen::Builder::default()
         .header("lean.h")
+        .clang_arg(format!("-I{}/include", lean_root.display()))
         .use_core()
         .wrap_static_fns(true)
         .wrap_static_fns_path("wrap_static_fns.c")
@@ -60,6 +62,7 @@ fn main() {
     // use cc to compile the C wrapper
     cc::Build::new()
         .file("wrap_static_fns.c")
+        .include(format!("{}/include", lean_root.display()))
         .compile("wrap_static_fns");
 
     bindings
